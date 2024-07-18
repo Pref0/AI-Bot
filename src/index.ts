@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Message, TextChannel } from "discord.js";
-import { Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
+import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -26,7 +26,7 @@ client.on("messageCreate", async (message: Message) => {
   if (message.channel.id !== process.env.CHANNEL_ID) return;
   if (message.content.startsWith("!")) return;
 
-  let conversationLog: { role: string; content: string; name?: string }[] = [
+  let conversationLog: ChatCompletionRequestMessage[] = [
     { role: "system", content: "You are a friendly chatbot." },
   ];
 
@@ -63,28 +63,14 @@ client.on("messageCreate", async (message: Message) => {
       }
     });
 
-    const reply = await message.reply({
-      content: "Generating response, please wait...",
-    });
-
     const result = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
-      messages: conversationLog as CreateChatCompletionRequest["messages"],
+      messages: conversationLog,
     });
 
     const text = result.data.choices?.[0]?.message?.content ?? "";
 
-    const CHUNK_SIZE = 2000;
-    const chunks: string[] = [];
-    for (let i = 0; i < text.length; i += CHUNK_SIZE) {
-      const chunk = text.substring(i, i + CHUNK_SIZE);
-      chunks.push(chunk);
-    }
-
-    chunks.forEach((chunk, i) => {
-      if (i === 0) return reply.edit(chunk);
-      message.channel.send(chunk);
-    });
+    message.channel.send(text);
   } catch (error) {
     console.error(`ERROR: ${error}`);
   }
