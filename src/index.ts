@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Message, TextChannel } from "discord.js";
-import { Configuration, CreateChatCompletionRequest, OpenAIApi } from "openai";
+import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "openai";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -26,7 +26,7 @@ client.on("messageCreate", async (message: Message) => {
   if (message.channel.id !== process.env.CHANNEL_ID) return;
   if (message.content.startsWith("!")) return;
 
-  let conversationLog: { role: string; content: string; name?: string }[] = [
+  let conversationLog: ChatCompletionRequestMessage[] = [
     { role: "system", content: "You are a friendly chatbot." },
   ];
 
@@ -36,6 +36,7 @@ client.on("messageCreate", async (message: Message) => {
     const prevMessages = await (message.channel as TextChannel).messages.fetch({
       limit: 15,
     });
+
     const sortedMessages = prevMessages.sort(
       (a, b) => a.createdTimestamp - b.createdTimestamp
     );
@@ -69,7 +70,7 @@ client.on("messageCreate", async (message: Message) => {
 
     const result = await openai.createChatCompletion({
       model: "gpt-3.5-turbo",
-      messages: conversationLog as CreateChatCompletionRequest["messages"],
+      messages: conversationLog,
     });
 
     const text = result.data.choices?.[0]?.message?.content ?? "";
